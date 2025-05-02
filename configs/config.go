@@ -8,8 +8,13 @@ import (
 )
 
 type Config struct {
-	Db  DbConfig
-	Bot BotConfig
+	Db     DbConfig
+	Bot    BotConfig
+	Common CommonConfig
+}
+
+type CommonConfig struct {
+	Env string
 }
 
 type DbConfig struct {
@@ -20,9 +25,9 @@ type BotConfig struct {
 	Token string
 }
 
-func LoadConfig() (*Config, error) {
+func Load() *Config {
 	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("Error loading .env file, %w", err)
+		fmt.Println("Error loading .env file. Loading default values")
 	}
 
 	return &Config{
@@ -32,5 +37,8 @@ func LoadConfig() (*Config, error) {
 		Bot: BotConfig{
 			Token: os.Getenv("BOT_TOKEN"),
 		},
-	}, nil
+		Common: CommonConfig{
+			Env: os.Getenv("ENV"),
+		},
+	}
 }

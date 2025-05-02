@@ -6,25 +6,25 @@ import (
 	"time"
 )
 
-type UserRepo struct {
+type Repository struct {
 	db *sql.DB
 }
 
 type User struct {
-	ID         uint32
+	ID         int64
 	TgUsername string
 	public     bool
 	createdAt  time.Time
 	updatedAt  time.Time
 }
 
-func New(db *sql.DB) *UserRepo {
-	return &UserRepo{
+func New(db *sql.DB) *Repository {
+	return &Repository{
 		db: db,
 	}
 }
 
-func (r *UserRepo) Prepare() error {
+func (r *Repository) Prepare() error {
 	q := `CREATE TABLE IF NOT EXISTS user (
 			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 			tgUsername TEXT NOT NULL UNIQUE,
@@ -38,7 +38,7 @@ func (r *UserRepo) Prepare() error {
 	return nil
 }
 
-func (r *UserRepo) Create(user *User) error {
+func (r *Repository) Create(user *User) error {
 	q := `INSERT INTO user (tgUsername, public) VALUES (?, ?)`
 	if _, err := r.db.Exec(q, user.TgUsername, user.public); err != nil {
 		return fmt.Errorf("Error while creating user, %w", err)
@@ -47,7 +47,7 @@ func (r *UserRepo) Create(user *User) error {
 	return nil
 }
 
-func (r *UserRepo) GetByUsername(username string) (*User, error) {
+func (r *Repository) GetByUsername(username string) (*User, error) {
 	q := `SELECT * FROM user WHERE tgUsername = ?`
 	var user User
 
@@ -58,7 +58,7 @@ func (r *UserRepo) GetByUsername(username string) (*User, error) {
 	return &user, nil
 }
 
-func (r *UserRepo) UpdatePublicByUsername(username string, public bool) error {
+func (r *Repository) UpdatePublicByUsername(username string, public bool) error {
 	now := time.Now()
 	q := `UPDATE user SET public = $2, updatedAt = $3 WHERE tgUsername = $1;`
 	if _, err := r.db.Exec(q, username, public, now); err != nil {

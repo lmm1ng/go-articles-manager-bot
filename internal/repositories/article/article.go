@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type ArticleRepo struct {
+type Repository struct {
 	db *sql.DB
 }
 
@@ -20,13 +20,13 @@ type Article struct {
 	readAt    time.Time
 }
 
-func New(db *sql.DB) *ArticleRepo {
-	return &ArticleRepo{
+func New(db *sql.DB) *Repository {
+	return &Repository{
 		db: db,
 	}
 }
 
-func (r *ArticleRepo) Prepare() error {
+func (r *Repository) Prepare() error {
 	q := `CREATE TABLE IF NOT EXISTS article (
 			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 			userId INTEGER NOT NULL,
@@ -44,7 +44,7 @@ func (r *ArticleRepo) Prepare() error {
 	return nil
 }
 
-func (r *ArticleRepo) Create(article *Article) error {
+func (r *Repository) Create(article *Article) error {
 	q := `INSERT INTO article (userId, title, url) VALUES (?, ?, ?)`
 	if _, err := r.db.Exec(q, article.userId, article.title, article.url); err != nil {
 		return fmt.Errorf("Error while creating article, %w", err)

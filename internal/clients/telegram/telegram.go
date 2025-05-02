@@ -10,33 +10,30 @@ import (
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
-type TelegramClient struct {
+type telegramClient struct {
 	bot     *telego.Bot
 	updates <-chan telego.Update
 }
 
-func New(token string, logger *slog.Logger) (*TelegramClient, error) {
+func MustNew(token string, logger *slog.Logger) *telegramClient {
 	bot, err := telego.NewBot(token)
 	ctx := context.Background()
 
-	defer logger.Info("Telegram bot instance created successfully")
-
 	if err != nil {
-		logger.Error("Failed to create Telegram bot", "error", err)
-		return nil, err
+		panic("Failed to create Telegram bot")
 	}
+
+	defer logger.Info("Telegram bot instance created successfully")
 
 	updates, _ := bot.UpdatesViaLongPolling(ctx, nil)
 
-	return &TelegramClient{bot: bot, updates: updates}, nil
+	return &telegramClient{bot: bot, updates: updates}
 }
 
-func (c *TelegramClient) RunHandlers(handlers []handlers.Handler) error {
+func (c *telegramClient) RunHandlers(handlers []handlers.Handler) error {
 	bh, _ := th.NewBotHandler(c.bot, c.updates)
 
-	defer func() {
-		bh.Stop()
-	}()
+	defer bh.Stop()
 
 	for _, h := range handlers {
 		bh.Handle(h.Cb, h.Predicate)

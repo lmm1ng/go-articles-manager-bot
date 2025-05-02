@@ -6,34 +6,21 @@ import (
 	"go-articles-manager-bot/internal/database"
 	"go-articles-manager-bot/internal/handlers"
 	random "go-articles-manager-bot/internal/handlers/article"
+	"go-articles-manager-bot/internal/logger"
 	"go-articles-manager-bot/internal/repositories/article"
 	"go-articles-manager-bot/internal/repositories/user"
-	"log/slog"
 
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
 func main() {
-	// move to internal/logger
-	logger := slog.Default()
+	cfg := configs.Load()
 
-	cfg, err := configs.LoadConfig()
+	log := logger.New(cfg.Common.Env)
 
-	if err != nil {
-		panic(err)
-	}
+	client := telegram.MustNew(cfg.Bot.Token, log)
 
-	client, err := telegram.New(cfg.Bot.Token, logger)
-
-	if err != nil {
-		panic(err)
-	}
-
-	db, err := database.New(cfg.Db.Path, logger)
-
-	if err != nil {
-		panic(err)
-	}
+	db := database.MustNew(cfg.Db.Path, log)
 
 	userRepo := user.New(db)
 	if err := userRepo.Prepare(); err != nil {
