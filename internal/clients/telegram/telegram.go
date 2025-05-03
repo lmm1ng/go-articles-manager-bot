@@ -30,10 +30,14 @@ func MustNew(token string, logger *slog.Logger) *telegramClient {
 	return &telegramClient{bot: bot, updates: updates}
 }
 
-func (c *telegramClient) RunHandlers(handlers []handlers.Handler) error {
+func (c *telegramClient) RunHandlers(handlers []handlers.Handler, middlewares []handlers.Cb) error {
 	bh, _ := th.NewBotHandler(c.bot, c.updates)
 
 	defer bh.Stop()
+
+	for _, m := range middlewares {
+		bh.Use(m)
+	}
 
 	for _, h := range handlers {
 		bh.Handle(h.Cb, h.Predicate)

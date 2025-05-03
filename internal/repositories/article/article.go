@@ -3,30 +3,20 @@ package article
 import (
 	"database/sql"
 	"fmt"
-	"time"
+	"go-articles-manager-bot/internal/models"
 )
 
-type Repository struct {
+type repository struct {
 	db *sql.DB
 }
 
-type Article struct {
-	id        uint32
-	userId    uint32
-	title     string
-	url       string
-	createdAt time.Time
-	updatedAt time.Time
-	readAt    time.Time
-}
-
-func New(db *sql.DB) *Repository {
-	return &Repository{
+func New(db *sql.DB) *repository {
+	return &repository{
 		db: db,
 	}
 }
 
-func (r *Repository) Prepare() error {
+func (r *repository) Prepare() error {
 	q := `CREATE TABLE IF NOT EXISTS article (
 			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 			userId INTEGER NOT NULL,
@@ -44,9 +34,10 @@ func (r *Repository) Prepare() error {
 	return nil
 }
 
-func (r *Repository) Create(article *Article) error {
+func (r *repository) Create(article *models.Article) error {
 	q := `INSERT INTO article (userId, title, url) VALUES (?, ?, ?)`
-	if _, err := r.db.Exec(q, article.userId, article.title, article.url); err != nil {
+	if _, err := r.db.Exec(q, article.UserId, article.Title, article.Url); err != nil {
+		fmt.Println(err)
 		return fmt.Errorf("Error while creating article, %w", err)
 	}
 

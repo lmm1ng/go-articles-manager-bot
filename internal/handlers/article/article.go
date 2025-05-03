@@ -1,62 +1,150 @@
 package article
 
 import (
-	"fmt"
+	"errors"
 	"go-articles-manager-bot/internal/handlers"
-	"sync"
-
-	"go-articles-manager-bot/internal/repositories/article"
+	"go-articles-manager-bot/internal/middlewares"
+	"go-articles-manager-bot/internal/models"
+	"net/http"
+	"time"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
+	"golang.org/x/net/html"
 )
 
-func NewRandomArticleHandler(articleRepo *article.Repository) handlers.Cb {
+type ArticleRepository interface {
+	Create(*models.Article) error
+}
+
+type UserRepository interface {
+	GetByTgUsername(string) (*models.User, error)
+}
+
+//	func NewRandomArticleHandler(articleRepo Article) handlers.Cb {
+//		return func(ctx *th.Context, update telego.Update) error {
+//			ctx.Bot().SendMessage(ctx, tu.Message(
+//				tu.ID(update.Message.Chat.ID),
+//				fmt.Sprintf("Hello %s!", update.Message.From.FirstName),
+//			))
+//			return nil
+//		}
+//	}
+
+func NewEnterCreateArticleHandler() handlers.Cb {
 	return func(ctx *th.Context, update telego.Update) error {
-		ctx.Bot().SendMessage(ctx, tu.Message(
-			tu.ID(update.Message.Chat.ID),
-			fmt.Sprintf("Hello %s!", update.Message.From.FirstName),
-		))
+		scenesManager := ctx.Value(middlewares.ScenesManagerKey).(*models.ScenesManager)
+
+		scenesManager.Mutex.RLock()
+		curScene := scenesManager.Users[update.Message.From.ID]
+		scenesManager.Mutex.RUnlock()
+
+		if curScene != models.NoScene {
+			return ctx.Next(update)
+		}
+
+		scenesManager.Mutex.Lock()
+		scenesManager.Users[update.Message.From.ID] = models.StateAddUrl
+		scenesManager.Mutex.Unlock()
+
+		ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), "Enter article url:"))
 		return nil
 	}
 }
 
-func NewCreateArticleHandler(articleRepo *article.Repository) handlers.Cb {
-	const (
-		StateDefault uint8 = iota
-		StateUrl
-	)
-
-	users := make(map[int64]uint8)
-	lock := sync.RWMutex{}
+func NewCreateArticleHandler(articleRepo ArticleRepository, userRepo UserRepository) handlers.Cb {
+	client := http.Client{
+		Timeout: time.Second,
+	}
 
 	return func(ctx *th.Context, update telego.Update) error {
 		from := update.Message.From
 		var text string
 
-		lock.RLock()
-		userState := users[from.ID]
-		lock.RUnlock()
+		scenesManager := ctx.Value("scenesManager").(*models.ScenesManager)
 
-		switch userState {
-		case StateDefault:
-			text = "Enter article url:"
-			lock.Lock()
-			users[from.ID] = StateUrl
-			lock.Unlock()
+		scenesManager.Mutex.RLock()
+		userState := scenesManager.Users[from.ID]
+		scenesManager.Mutex.RUnlock()
 
-		case StateUrl:
-			// url := update.Message.Text
-			// articleRepo.Create(&article.Article{: url})
-			// ctx.Bot().SendMessage(ctx, tu.Message(
-			// 	tu.ID(update.Message.Chat.ID),
-			// 	fmt.Sprintf("Hello %s!", update.Message.From.FirstName),
-			// ))
-			lock.Lock()
-			delete(users, from.ID)
-			lock.Unlock()
+		if userState == models.NoScene {
+			return ctx.Next(update)
 		}
+
+		defer func() {
+			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), text))
+		}()
+
+		user, err := userRepo.GetByTgUsername(from.Username)
+
+		if err != nil {
+			text = "User not found"
+			return nil
+		}
+
+		url := update.Message.Text
+		resp, err := client.Get(url)
+
+		if err != nil {
+			text = "Url not valid"
+			return nil
+		}
+
+		defer func() {
+			resp.Body.Close()
+		}()
+
+		title, err := getTitle(resp)
+
+		if err != nil {
+			text = "Url not valid (no title)"
+			return nil
+		}
+
+		err = articleRepo.Create(&models.Article{Url: url, Title: title, UserId: user.Id})
+
+		if err != nil {
+			text = "Article not created"
+			return nil
+		}
+
+		text = "Article created successfully"
+
+		scenesManager.Mutex.Lock()
+		delete(scenesManager.Users, from.ID)
+		scenesManager.Mutex.Unlock()
+
 		return nil
+	}
+}
+
+func getTitle(resp *http.Response) (string, error) {
+	t := html.NewTokenizer(resp.Body)
+	for {
+		cur := t.Next()
+		if cur == html.ErrorToken {
+			return "", errors.New("Title not found")
+		}
+
+		if cur != html.StartTagToken {
+			continue
+		}
+		token := t.Token()
+		if token.Data != "meta" {
+			continue
+		}
+
+		var ok bool
+
+		for _, attr := range token.Attr {
+			if attr.Key == "property" && attr.Val == "og:title" {
+				ok = true
+			}
+
+			if attr.Key == "content" && ok {
+				return attr.Val, nil
+			}
+		}
 	}
 }

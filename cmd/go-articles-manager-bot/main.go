@@ -5,10 +5,13 @@ import (
 	"go-articles-manager-bot/internal/clients/telegram"
 	"go-articles-manager-bot/internal/database"
 	"go-articles-manager-bot/internal/handlers"
-	random "go-articles-manager-bot/internal/handlers/article"
+	"go-articles-manager-bot/internal/handlers/article"
+	"go-articles-manager-bot/internal/handlers/user"
 	"go-articles-manager-bot/internal/logger"
-	"go-articles-manager-bot/internal/repositories/article"
-	"go-articles-manager-bot/internal/repositories/user"
+	"go-articles-manager-bot/internal/middlewares"
+
+	articleRepo "go-articles-manager-bot/internal/repositories/article"
+	userRepo "go-articles-manager-bot/internal/repositories/user"
 
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -22,17 +25,15 @@ func main() {
 
 	db := database.MustNew(cfg.Db.Path, log)
 
-	userRepo := user.New(db)
-	if err := userRepo.Prepare(); err != nil {
-		panic(err)
-	}
+	userRepository := userRepo.New(db)
+	articleRepository := articleRepo.New(db)
 
-	aricleRepo := article.New(db)
-	if err := aricleRepo.Prepare(); err != nil {
-		panic(err)
-	}
+	createUserHandler := handlers.New(user.NewCreateUserHandler(userRepository), th.CommandEqual("start"))
+	enterCreareArticleHandler := handlers.New(article.NewEnterCreateArticleHandler(), th.CommandEqual("add"))
+	createArticleHandler := handlers.New(article.NewCreateArticleHandler(articleRepository, userRepository), th.TextPrefix("http"))
 
-	randomArticleHandler := handlers.New(random.New(), th.Any())
+	authMiddleware := middlewares.NewAuthMiddleware()
+	sceneMiddleware := middlewares.NewSceneMiddleware()
 
-	client.RunHandlers([]handlers.Handler{randomArticleHandler})
+	client.RunHandlers([]handlers.Handler{createUserHandler, enterCreareArticleHandler, createArticleHandler}, []handlers.Cb{sceneMiddleware, authMiddleware})
 }
