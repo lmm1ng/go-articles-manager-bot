@@ -4,11 +4,12 @@ import (
 	"go-articles-manager-bot/configs"
 	"go-articles-manager-bot/internal/clients/telegram"
 	"go-articles-manager-bot/internal/database"
-	"go-articles-manager-bot/internal/handlers"
 	"go-articles-manager-bot/internal/handlers/article"
 	"go-articles-manager-bot/internal/handlers/user"
 	"go-articles-manager-bot/internal/logger"
 	"go-articles-manager-bot/internal/middlewares"
+	"go-articles-manager-bot/internal/models/handler"
+	"go-articles-manager-bot/internal/pkg/sceneBuilder"
 
 	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	userRepo "go-articles-manager-bot/internal/repositories/user"
@@ -28,12 +29,39 @@ func main() {
 	userRepository := userRepo.New(db)
 	articleRepository := articleRepo.New(db)
 
-	createUserHandler := handlers.New(user.NewCreateUserHandler(userRepository), th.CommandEqual("start"))
-	enterCreareArticleHandler := handlers.New(article.NewEnterCreateArticleHandler(), th.CommandEqual("add"))
-	createArticleHandler := handlers.New(article.NewCreateArticleHandler(articleRepository, userRepository), th.TextPrefix("http"))
+	createUserHandler := handler.New(
+		user.NewCreateUserHandler(userRepository),
+		th.CommandEqual("start"),
+	)
+
+	createArticleScene := sceneBuilder.NewScene(
+		[]sceneBuilder.SceneStep{
+			sceneBuilder.NewSceneStep(
+				article.NewEnterCreateArticleHandler(),
+				sceneBuilder.NoScene,
+			),
+			sceneBuilder.NewSceneStep(
+				article.NewCreateArticleHandler(articleRepository, userRepository),
+				sceneBuilder.StateAddArticleUrl,
+			),
+		},
+		th.CommandEqual("addArticle"),
+	)
 
 	authMiddleware := middlewares.NewAuthMiddleware()
 	sceneMiddleware := middlewares.NewSceneMiddleware()
 
-	client.RunHandlers([]handlers.Handler{createUserHandler, enterCreareArticleHandler, createArticleHandler}, []handlers.Cb{sceneMiddleware, authMiddleware})
+	client.
+		Run(
+			[]handler.Handler{
+				createUserHandler,
+			},
+			[]th.Handler{
+				sceneMiddleware,
+				authMiddleware,
+			},
+			[]sceneBuilder.Scene{
+				createArticleScene,
+			},
+		)
 }

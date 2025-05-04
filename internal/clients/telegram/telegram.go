@@ -2,9 +2,9 @@ package telegram
 
 import (
 	"context"
-	"log/slog"
-
 	"go-articles-manager-bot/internal/handlers"
+	"go-articles-manager-bot/internal/pkg/scenebuilder"
+	"log/slog"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -17,11 +17,12 @@ type telegramClient struct {
 
 func MustNew(token string, logger *slog.Logger) *telegramClient {
 	bot, err := telego.NewBot(token)
-	ctx := context.Background()
 
 	if err != nil {
-		panic("Failed to create Telegram bot")
+		panic("Failed to create Telegram bot by provided token")
 	}
+
+	ctx := context.Background()
 
 	defer logger.Info("Telegram bot instance created successfully")
 
@@ -30,7 +31,11 @@ func MustNew(token string, logger *slog.Logger) *telegramClient {
 	return &telegramClient{bot: bot, updates: updates}
 }
 
-func (c *telegramClient) RunHandlers(handlers []handlers.Handler, middlewares []handlers.Cb) error {
+func (c *telegramClient) Run(
+	handlers []handlers.Handler,
+	middlewares []th.Handler,
+	scenes []scenebuilder.Scene,
+) error {
 	bh, _ := th.NewBotHandler(c.bot, c.updates)
 
 	defer bh.Stop()
@@ -41,6 +46,10 @@ func (c *telegramClient) RunHandlers(handlers []handlers.Handler, middlewares []
 
 	for _, h := range handlers {
 		bh.Handle(h.Cb, h.Predicate)
+	}
+
+	for _, s := range scenes {
+		s.Register(bh)
 	}
 
 	bh.Start()

@@ -3,7 +3,9 @@ package article
 import (
 	"database/sql"
 	"fmt"
-	"go-articles-manager-bot/internal/models"
+	"go-articles-manager-bot/internal/entities"
+	"strings"
+	"time"
 )
 
 type repository struct {
@@ -16,28 +18,32 @@ func New(db *sql.DB) *repository {
 	}
 }
 
-func (r *repository) Prepare() error {
-	q := `CREATE TABLE IF NOT EXISTS article (
-			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-			userId INTEGER NOT NULL,
-			title TEXT NOT NULL,
-			url TEXT NOT NULL,
-			createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			readAt DATETIME DEFAULT NULL,
-			FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
-		);`
-	if _, err := r.db.Exec(q); err != nil {
-		return err
-	}
-
-	return nil
+type Article struct {
+	Id        uint32
+	UserId    uint32
+	Title     sql.NullString
+	Url       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ReadAt    time.Time
 }
 
-func (r *repository) Create(article *models.Article) error {
+func (a *Article) ToEntity() *entities.Article {
+	return &entities.Article{
+		Id:     a.Id,
+		UserId: a.UserId,
+		Title:  string(a.Title.String),
+		Url:    a.Url,
+		ReadAt: a.ReadAt,
+	}
+}
+
+func (r *repository) Create(article entities.Article) error {
 	q := `INSERT INTO article (userId, title, url) VALUES (?, ?, ?)`
 	if _, err := r.db.Exec(q, article.UserId, article.Title, article.Url); err != nil {
-		fmt.Println(err)
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return ErrAlreadyExists
+		}
 		return fmt.Errorf("Error while creating article, %w", err)
 	}
 

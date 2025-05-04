@@ -3,7 +3,8 @@ package user
 import (
 	"database/sql"
 	"fmt"
-	"go-articles-manager-bot/internal/models"
+	"go-articles-manager-bot/internal/entities"
+	"strings"
 	"time"
 )
 
@@ -17,26 +18,47 @@ func New(db *sql.DB) *repository {
 	}
 }
 
-func (r *repository) Create(user *models.User) error {
+type User struct {
+	Id         uint32
+	TgUsername string
+	Desc       string
+	TgId       int64
+	Public     bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+func (u *User) ToEntity() *entities.User {
+	return &entities.User{
+		Id:         u.Id,
+		TgUsername: u.TgUsername,
+		Desc:       u.Desc,
+		TgId:       u.TgId,
+		Public:     u.Public,
+	}
+}
+
+func (r *repository) Create(user *entities.User) error {
 	q := `INSERT INTO user (tgUsername, tgId) VALUES (?, ?)`
-	fmt.Println("kekeke")
 	if _, err := r.db.Exec(q, user.TgUsername, user.TgId); err != nil {
-		fmt.Println("Error while creating user:", err)
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return ErrAlreadyExists
+		}
 		return fmt.Errorf("Error while creating user, %w", err)
 	}
 
 	return nil
 }
 
-func (r *repository) GetByTgUsername(username string) (*models.User, error) {
+func (r *repository) GetByTgUsername(username string) (*entities.User, error) {
 	q := `SELECT * FROM user WHERE tgUsername = ?`
-	var user models.User
+	var user User
 
 	if err := r.db.QueryRow(q, username).Scan(&user.Id, &user.TgId, &user.TgUsername, &user.Desc, &user.Public, &user.CreatedAt, &user.UpdatedAt); err != nil {
-		return nil, fmt.Errorf("Error getting user by tgUsername: %w", err)
+		return nil, ErrNotFound
 	}
 
-	return &user, nil
+	return user.ToEntity(), nil
 }
 
 func (r *repository) UpdatePublicByUsername(username string, public bool) error {
