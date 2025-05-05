@@ -11,11 +11,11 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-type UserRepository interface {
+type userRepository interface {
 	Create(user *entities.User) error
 }
 
-func NewCreateUserHandler(userRepo UserRepository) th.Handler {
+func NewCreateUserHandler(userRepo userRepository) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		defer func() {
 		}()

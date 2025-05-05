@@ -9,5 +9,5 @@ type Article struct {
 	UserId uint32
 	Title  string
 	Url    string
-	ReadAt time.Time
+	ReadAt *time.Time
 }

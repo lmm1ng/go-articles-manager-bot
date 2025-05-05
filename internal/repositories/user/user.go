@@ -21,7 +21,7 @@ func New(db *sql.DB) *repository {
 type User struct {
 	Id         uint32
 	TgUsername string
-	Desc       string
+	Desc       sql.NullString
 	TgId       int64
 	Public     bool
 	CreatedAt  time.Time
@@ -29,10 +29,14 @@ type User struct {
 }
 
 func (u *User) ToEntity() *entities.User {
+	var desc *string
+	if u.Desc.Valid {
+		desc = &u.Desc.String
+	}
 	return &entities.User{
 		Id:         u.Id,
 		TgUsername: u.TgUsername,
-		Desc:       u.Desc,
+		Desc:       desc,
 		TgId:       u.TgId,
 		Public:     u.Public,
 	}

@@ -13,11 +13,11 @@ const (
 )
 
 type SceneManager struct {
-	Users map[int64]uint8
+	Users *map[int64]uint8
 	Mutex *sync.RWMutex
 }
 
-func NewSceneManager(users map[int64]uint8, mutex *sync.RWMutex) *SceneManager {
+func NewSceneManager(users *map[int64]uint8, mutex *sync.RWMutex) *SceneManager {
 	return &SceneManager{
 		Users: users,
 		Mutex: mutex,

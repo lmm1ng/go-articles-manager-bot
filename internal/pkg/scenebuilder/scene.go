@@ -34,12 +34,8 @@ func (s *Scene) Register(
 				return errors.New("No users state")
 			}
 			scenesManager.Mutex.RLock()
-			curScene, exists := scenesManager.Users[update.Message.From.ID]
+			curScene := (*scenesManager.Users)[update.Message.From.ID]
 			scenesManager.Mutex.RUnlock()
-
-			if !exists {
-				return ctx.Next(update)
-			}
 
 			if curScene != uint8(step.Step) {
 				return ctx.Next(update)
@@ -53,9 +49,9 @@ func (s *Scene) Register(
 
 			scenesManager.Mutex.Lock()
 			if pos == len(s.steps)-1 {
-				scenesManager.Users[update.Message.From.ID] = NoScene
+				(*scenesManager.Users)[update.Message.From.ID] = NoScene
 			} else {
-				scenesManager.Users[update.Message.From.ID] = s.steps[pos+1].Step
+				(*scenesManager.Users)[update.Message.From.ID] = s.steps[pos+1].Step
 			}
 
 			scenesManager.Mutex.Unlock()

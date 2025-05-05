@@ -3,7 +3,7 @@ package article
 import (
 	"errors"
 	"go-articles-manager-bot/internal/entities"
-	"go-articles-manager-bot/internal/repositories/article"
+	"go-articles-manager-bot/internal/repositories/user"
 	"net/http"
 	"time"
 
@@ -13,11 +13,12 @@ import (
 	"golang.org/x/net/html"
 )
 
-type ArticleRepository interface {
+type articleRepository interface {
 	Create(*entities.Article) error
+	GetRandomByTgId(tgId int64) (*entities.Article, error)
 }
 
-type UserRepository interface {
+type userRepository interface {
 	GetByTgUsername(string) (*entities.User, error)
 }
 
@@ -28,12 +29,12 @@ func NewEnterCreateArticleHandler() th.Handler {
 	}
 }
 
-func NewCreateArticleHandler(articleRepo ArticleRepository, userRepo UserRepository) th.Handler {
-	client := http.Client{
-		Timeout: time.Second,
-	}
-
+func NewCreateArticleHandler(articleRepo articleRepository, userRepo userRepository) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
+		client := http.Client{
+			Timeout: time.Second,
+		}
+
 		from := update.Message.From
 		var text string
 
@@ -41,10 +42,10 @@ func NewCreateArticleHandler(articleRepo ArticleRepository, userRepo UserReposit
 			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), text))
 		}()
 
-		user, err := userRepo.GetByTgUsername(from.Username)
+		u, err := userRepo.GetByTgUsername(from.Username)
 
 		if err != nil {
-			if errors.Is(err, article.ErrNotFound) {
+			if errors.Is(err, user.ErrNotFound) {
 				text = "User not found"
 			}
 
@@ -72,7 +73,7 @@ func NewCreateArticleHandler(articleRepo ArticleRepository, userRepo UserReposit
 				&entities.Article{
 					Url:    url,
 					Title:  title,
-					UserId: user.Id,
+					UserId: u.Id,
 				},
 			)
 

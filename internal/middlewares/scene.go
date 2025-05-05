@@ -11,6 +11,7 @@ import (
 
 func NewSceneMiddleware() func(ctx *th.Context, update telego.Update) error {
 	usersHash := make(map[int64]uint8)
+	lock := &sync.RWMutex{}
 	return func(ctx *th.Context, update telego.Update) error {
 
 		if value := ctx.Value(scenebuilder.ScenesManagerKey); value != nil {
@@ -19,7 +20,7 @@ func NewSceneMiddleware() func(ctx *th.Context, update telego.Update) error {
 
 		ctx = ctx.WithValue(
 			scenebuilder.ScenesManagerKey,
-			scenebuilder.NewSceneManager(usersHash, &sync.RWMutex{}),
+			scenebuilder.NewSceneManager(&usersHash, lock),
 		)
 		update = update.WithContext(ctx)
 		return ctx.Next(update)

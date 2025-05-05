@@ -1,4 +1,4 @@
-// package user
+package user
 
 // import (
 // 	"go-articles-manager-bot/internal/middlewares"

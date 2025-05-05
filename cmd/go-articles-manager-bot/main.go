@@ -4,12 +4,13 @@ import (
 	"go-articles-manager-bot/configs"
 	"go-articles-manager-bot/internal/clients/telegram"
 	"go-articles-manager-bot/internal/database"
+	"go-articles-manager-bot/internal/handlers"
 	"go-articles-manager-bot/internal/handlers/article"
 	"go-articles-manager-bot/internal/handlers/user"
+	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/logger"
 	"go-articles-manager-bot/internal/middlewares"
-	"go-articles-manager-bot/internal/models/handler"
-	"go-articles-manager-bot/internal/pkg/sceneBuilder"
+	"go-articles-manager-bot/internal/pkg/scenebuilder"
 
 	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	userRepo "go-articles-manager-bot/internal/repositories/user"
@@ -29,23 +30,28 @@ func main() {
 	userRepository := userRepo.New(db)
 	articleRepository := articleRepo.New(db)
 
-	createUserHandler := handler.New(
+	createUserHandler := handlers.NewHandler(
 		user.NewCreateUserHandler(userRepository),
 		th.CommandEqual("start"),
 	)
 
-	createArticleScene := sceneBuilder.NewScene(
-		[]sceneBuilder.SceneStep{
-			sceneBuilder.NewSceneStep(
+	createGetRandomArticleHandler := handlers.NewHandler(
+		article.NewGetRandomArticleHandler(articleRepository),
+		th.CommandEqual("get_random"),
+	)
+
+	createArticleScene := scenebuilder.NewScene(
+		[]scenebuilder.SceneStep{
+			scenebuilder.NewSceneStep(
 				article.NewEnterCreateArticleHandler(),
-				sceneBuilder.NoScene,
+				scenebuilder.NoScene,
 			),
-			sceneBuilder.NewSceneStep(
+			scenebuilder.NewSceneStep(
 				article.NewCreateArticleHandler(articleRepository, userRepository),
-				sceneBuilder.StateAddArticleUrl,
+				scenebuilder.StepAddArticleUrl,
 			),
 		},
-		th.CommandEqual("addArticle"),
+		th.TextEqual(keyboards.AddArticle),
 	)
 
 	authMiddleware := middlewares.NewAuthMiddleware()
@@ -53,14 +59,15 @@ func main() {
 
 	client.
 		Run(
-			[]handler.Handler{
+			[]handlers.Handler{
 				createUserHandler,
+				createGetRandomArticleHandler,
 			},
 			[]th.Handler{
 				sceneMiddleware,
 				authMiddleware,
 			},
-			[]sceneBuilder.Scene{
+			[]scenebuilder.Scene{
 				createArticleScene,
 			},
 		)
