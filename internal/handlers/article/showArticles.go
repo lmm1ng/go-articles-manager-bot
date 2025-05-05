@@ -1,5 +1,7 @@
 package article
 
+package article
+
 import (
 	"errors"
 	"fmt"
@@ -15,7 +17,7 @@ import (
 // 	Create(*entities.Article) error
 // }
 
-func NewGetRandomArticleHandler(articleRepo articleRepository) th.Handler {
+func NewShowArticlesHandler(articleRepo articleRepository) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		var text string
 

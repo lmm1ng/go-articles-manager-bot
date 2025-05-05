@@ -17,9 +17,6 @@ type userRepository interface {
 
 func NewCreateUserHandler(userRepo userRepository) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
-		defer func() {
-		}()
-
 		u := &entities.User{
 			TgId:       update.Message.From.ID,
 			TgUsername: update.Message.From.Username,
@@ -42,7 +39,8 @@ func NewCreateUserHandler(userRepo userRepository) th.Handler {
 					update.Message.Chat.ChatID(),
 					"Here you go",
 				).
-					WithReplyMarkup(keyboards.NewMainMenuKeyboard()))
+					WithReplyMarkup(keyboards.NewMainMenuKeyboard()),
+			)
 
 		return nil
 	}

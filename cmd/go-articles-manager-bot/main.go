@@ -37,7 +37,17 @@ func main() {
 
 	createGetRandomArticleHandler := handlers.NewHandler(
 		article.NewGetRandomArticleHandler(articleRepository),
-		th.CommandEqual("get_random"),
+		th.TextEqual(keyboards.RandomArticle),
+	)
+
+	readArticleHanler := handlers.NewHandler(
+		article.NewReadArticleHandler(articleRepository),
+		th.CallbackDataPrefix(keyboards.ReadArticle),
+	)
+
+	deleteArticleHanler := handlers.NewHandler(
+		article.NewDeleteArticleHandler(articleRepository),
+		th.CallbackDataPrefix(keyboards.DeleteArticle),
 	)
 
 	createArticleScene := scenebuilder.NewScene(
@@ -62,6 +72,8 @@ func main() {
 			[]handlers.Handler{
 				createUserHandler,
 				createGetRandomArticleHandler,
+				readArticleHanler,
+				deleteArticleHanler,
 			},
 			[]th.Handler{
 				sceneMiddleware,

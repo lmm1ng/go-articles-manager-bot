@@ -7,7 +7,7 @@ import (
 type Article struct {
 	Id     uint32
 	UserId uint32
-	Title  string
+	Title  *string
 	Url    string
 	ReadAt *time.Time
 }

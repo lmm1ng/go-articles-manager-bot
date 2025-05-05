@@ -68,8 +68,14 @@ func (r *repository) GetByTgUsername(username string) (*entities.User, error) {
 func (r *repository) UpdatePublicByUsername(username string, public bool) error {
 	now := time.Now()
 	q := `UPDATE user SET public = $2, updatedAt = $3 WHERE tgUsername = $1;`
-	if _, err := r.db.Exec(q, username, public, now); err != nil {
+	row, err := r.db.Exec(q, username, public, now)
+
+	if err != nil {
 		return fmt.Errorf("Error updating user by tgUsername: %w", err)
+	}
+
+	if c, _ := row.RowsAffected(); c == 0 {
+		return ErrNotFound
 	}
 
 	return nil

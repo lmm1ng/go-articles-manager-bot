@@ -13,15 +13,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-type articleRepository interface {
-	Create(*entities.Article) error
-	GetRandomByTgId(tgId int64) (*entities.Article, error)
-}
-
-type userRepository interface {
-	GetByTgUsername(string) (*entities.User, error)
-}
-
 func NewEnterCreateArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), "Enter article url:"))
@@ -66,7 +57,11 @@ func NewCreateArticleHandler(articleRepo articleRepository, userRepo userReposit
 			resp.Body.Close()
 		}()
 
-		title, _ := getTitle(resp)
+		var title *string
+		extractedTitle, _ := getTitle(resp)
+		if extractedTitle != "" {
+			title = &extractedTitle
+		}
 
 		err = articleRepo.
 			Create(
