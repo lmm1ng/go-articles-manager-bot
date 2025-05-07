@@ -5,8 +5,8 @@ import (
 	"go-articles-manager-bot/internal/clients/telegram"
 	"go-articles-manager-bot/internal/database"
 	"go-articles-manager-bot/internal/handlers"
-	"go-articles-manager-bot/internal/handlers/article"
-	"go-articles-manager-bot/internal/handlers/user"
+	articleHandler "go-articles-manager-bot/internal/handlers/article"
+	userHandler "go-articles-manager-bot/internal/handlers/user"
 	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/logger"
 	"go-articles-manager-bot/internal/middlewares"
@@ -30,39 +30,67 @@ func main() {
 	userRepository := userRepo.New(db)
 	articleRepository := articleRepo.New(db)
 
-	createUserHandler := handlers.NewHandler(
-		user.NewCreateUserHandler(userRepository),
-		th.CommandEqual("start"),
-	)
+	articleHandler := articleHandler.New(articleRepository, userRepository)
+
+	// Article section
 
 	createGetRandomArticleHandler := handlers.NewHandler(
-		article.NewGetRandomArticleHandler(articleRepository),
+		articleHandler.NewGetRandomArticleHandler(),
 		th.TextEqual(keyboards.RandomArticle),
 	)
 
 	readArticleHanler := handlers.NewHandler(
-		article.NewReadArticleHandler(articleRepository),
+		articleHandler.NewReadArticleHandler(),
 		th.CallbackDataPrefix(keyboards.ReadArticle),
 	)
 
 	deleteArticleHanler := handlers.NewHandler(
-		article.NewDeleteArticleHandler(articleRepository),
+		articleHandler.NewDeleteArticleHandler(),
 		th.CallbackDataPrefix(keyboards.DeleteArticle),
 	)
+
+	showArticlesHandler := handlers.NewHandler(articleHandler.NewShowArticlesHandler(),
+		th.TextEqual(keyboards.ShowArticles),
+	)
+
+	showArticlesChangePageHandler := handlers.NewHandler(
+		articleHandler.NewShowArticlesChangePageHandler(),
+		th.Or(
+			th.CallbackDataPrefix(keyboards.PrevPage),
+			th.CallbackDataPrefix(keyboards.NextPage),
+		),
+	)
+
+	showArticlesChangeVisibilityHandler := handlers.NewHandler(articleHandler.NewShowArticlesChangeVisibilityHandler(),
+		th.Or(
+			th.CallbackDataPrefix(keyboards.HideRead),
+			th.CallbackDataPrefix(keyboards.ShowRead),
+		))
 
 	createArticleScene := scenebuilder.NewScene(
 		[]scenebuilder.SceneStep{
 			scenebuilder.NewSceneStep(
-				article.NewEnterCreateArticleHandler(),
+				articleHandler.NewEnterCreateArticleHandler(),
 				scenebuilder.NoScene,
 			),
 			scenebuilder.NewSceneStep(
-				article.NewCreateArticleHandler(articleRepository, userRepository),
+				articleHandler.NewCreateArticleHandler(),
 				scenebuilder.StepAddArticleUrl,
 			),
 		},
 		th.TextEqual(keyboards.AddArticle),
 	)
+
+	// User section
+
+	userHandler := userHandler.New(userRepository)
+
+	createUserHandler := handlers.NewHandler(
+		userHandler.NewCreateUserHandler(),
+		th.CommandEqual("start"),
+	)
+
+	// Middlewares
 
 	authMiddleware := middlewares.NewAuthMiddleware()
 	sceneMiddleware := middlewares.NewSceneMiddleware()
@@ -74,6 +102,9 @@ func main() {
 				createGetRandomArticleHandler,
 				readArticleHanler,
 				deleteArticleHanler,
+				showArticlesHandler,
+				showArticlesChangePageHandler,
+				showArticlesChangeVisibilityHandler,
 			},
 			[]th.Handler{
 				sceneMiddleware,

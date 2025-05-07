@@ -7,6 +7,8 @@ type articleRepository interface {
 	GetRandomByTgId(tgId int64) (*entities.Article, error)
 	Read(articleId uint32) error
 	Delete(articleId uint32) error
+	GetArticlesByTgId(tgId int64, read bool, offset uint16, limit uint16) ([]*entities.Article, error)
+	GetById(tgId int64, articleId uint32) (*entities.Article, error)
 }
 
 type userRepository interface {

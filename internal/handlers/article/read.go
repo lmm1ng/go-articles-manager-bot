@@ -12,7 +12,7 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func NewReadArticleHandler(articleRepo articleRepository) th.Handler {
+func (ah *ArticleHandler) NewReadArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		var text string
 
@@ -42,7 +42,7 @@ func NewReadArticleHandler(articleRepo articleRepository) th.Handler {
 			return nil
 		}
 
-		if err = articleRepo.Read(uint32(articleId)); err != nil {
+		if err = ah.articleRepo.Read(uint32(articleId)); err != nil {
 			if errors.Is(err, article.ErrNotFound) {
 				text = "Article not found"
 			} else {

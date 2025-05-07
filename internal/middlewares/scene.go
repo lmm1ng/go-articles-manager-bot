@@ -22,6 +22,7 @@ func NewSceneMiddleware() func(ctx *th.Context, update telego.Update) error {
 			scenebuilder.ScenesManagerKey,
 			scenebuilder.NewSceneManager(&usersHash, lock),
 		)
+
 		update = update.WithContext(ctx)
 		return ctx.Next(update)
 	}

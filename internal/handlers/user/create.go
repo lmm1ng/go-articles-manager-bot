@@ -15,14 +15,14 @@ type userRepository interface {
 	Create(user *entities.User) error
 }
 
-func NewCreateUserHandler(userRepo userRepository) th.Handler {
+func (uh *UserHandler) NewCreateUserHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		u := &entities.User{
 			TgId:       update.Message.From.ID,
 			TgUsername: update.Message.From.Username,
 		}
 
-		err := userRepo.Create(u)
+		err := uh.userRepo.Create(u)
 		if err != nil {
 			text := "Internal error"
 			if errors.Is(err, user.ErrAlreadyExists) {

@@ -5,6 +5,7 @@ import (
 	"go-articles-manager-bot/internal/entities"
 	"go-articles-manager-bot/internal/repositories/user"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/mymmrac/telego"
@@ -13,14 +14,14 @@ import (
 	"golang.org/x/net/html"
 )
 
-func NewEnterCreateArticleHandler() th.Handler {
+func (ah *ArticleHandler) NewEnterCreateArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), "Enter article url:"))
 		return nil
 	}
 }
 
-func NewCreateArticleHandler(articleRepo articleRepository, userRepo userRepository) th.Handler {
+func (ah *ArticleHandler) NewCreateArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		client := http.Client{
 			Timeout: time.Second,
@@ -33,7 +34,7 @@ func NewCreateArticleHandler(articleRepo articleRepository, userRepo userReposit
 			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), text))
 		}()
 
-		u, err := userRepo.GetByTgUsername(from.Username)
+		u, err := ah.userRepo.GetByTgUsername(from.Username)
 
 		if err != nil {
 			if errors.Is(err, user.ErrNotFound) {
@@ -63,7 +64,7 @@ func NewCreateArticleHandler(articleRepo articleRepository, userRepo userReposit
 			title = &extractedTitle
 		}
 
-		err = articleRepo.
+		err = ah.articleRepo.
 			Create(
 				&entities.Article{
 					Url:    url,
@@ -102,7 +103,7 @@ func getTitle(resp *http.Response) (string, error) {
 		var ok bool
 
 		for _, attr := range token.Attr {
-			if attr.Key == "property" && attr.Val == "og:title" {
+			if slices.Contains([]string{"property", "name"}, attr.Key) && attr.Val == "og:title" {
 				ok = true
 			}
 

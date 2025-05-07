@@ -12,7 +12,7 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func NewDeleteArticleHandler(articleRepo articleRepository) th.Handler {
+func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		var text string
 
@@ -31,19 +31,21 @@ func NewDeleteArticleHandler(articleRepo articleRepository) th.Handler {
 
 		}()
 
-		articleId, err := strconv.Atoi(strings.Replace(
-			update.CallbackQuery.Data,
-			keyboards.DeleteArticle+" ",
-			"",
-			1,
-		))
+		articleId, err := strconv.Atoi(
+			strings.Replace(
+				update.CallbackQuery.Data,
+				keyboards.DeleteArticle+" ",
+				"",
+				1,
+			),
+		)
 
 		if err != nil {
 			text = "Article id not valid"
 			return nil
 		}
 
-		if err = articleRepo.Delete(uint32(articleId)); err != nil {
+		if err = ah.articleRepo.Delete(uint32(articleId)); err != nil {
 			if errors.Is(err, article.ErrNotFound) {
 				text = "Article not found"
 			} else {

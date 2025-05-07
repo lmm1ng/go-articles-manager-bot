@@ -28,7 +28,7 @@ type Article struct {
 	ReadAt    sql.NullTime
 }
 
-func (a *Article) ToEntity() *entities.Article {
+func (a *Article) toEntity() *entities.Article {
 	var readAt *time.Time
 	var title *string
 
@@ -81,7 +81,30 @@ func (r *repository) GetRandomByTgId(tgId int64) (*entities.Article, error) {
 		return nil, fmt.Errorf("Error while getting random article, %w", err)
 	}
 
-	return article.ToEntity(), nil
+	return article.toEntity(), nil
+}
+
+func (r *repository) GetById(tgId int64, articleId uint32) (*entities.Article, error) {
+	q := `SELECT a.* FROM article a WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = $2) AND a.id = $1 LIMIT 1;`
+	var article Article
+	row := r.db.QueryRow(q, tgId)
+
+	if err := row.Scan(
+		&article.Id,
+		&article.UserId,
+		&article.Title,
+		&article.Url,
+		&article.CreatedAt,
+		&article.UpdatedAt,
+		&article.ReadAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("Error while getting article, %w", err)
+	}
+
+	return article.toEntity(), nil
 }
 
 func (r *repository) Read(articleId uint32) error {
@@ -114,38 +137,43 @@ func (r *repository) Delete(articleId uint32) error {
 
 	return nil
 }
-func (r *repository) ShowArticlesByTgId(tgId int64, readed bool, offset uint16) (*entities.Article, error) {
-	limit := 10
-	var t time.Time
-	if readed {
-		t = time.Now()
-	}
+func (r *repository) GetArticlesByTgId(tgId int64, read bool, offset uint16, limit uint16) ([]*entities.Article, error) {
+	readAt := sql.NullTime{Valid: read, Time: time.Now()}
 
 	q := `
 	SELECT a.* FROM article a
 	WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = $1) AND
-	a.readAt < $2
-	ORDER BY a.id DESC
-	LIMIT 10
-	OFFSET $3;`
+	a.readAt < $2 OR a.readAt IS NULL
+	ORDER BY a.id ASC
+	LIMIT $3
+	OFFSET $4;`
 
-	var article Article
-	rows, err := r.db.Query(q, tgId)
+	rows, err := r.db.Query(q, tgId, readAt, limit, offset)
 
-	if err := row.Scan(
-		&article.Id,
-		&article.UserId,
-		&article.Title,
-		&article.Url,
-		&article.CreatedAt,
-		&article.UpdatedAt,
-		&article.ReadAt,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("Error while getting random article, %w", err)
+	if err != nil {
+		return nil, err
 	}
 
-	return article.ToEntity(), nil
+	defer rows.Close()
+
+	var articles []*entities.Article
+
+	for rows.Next() {
+		var a Article
+		if err := rows.Scan(
+			&a.Id,
+			&a.UserId,
+			&a.Title,
+			&a.Url,
+			&a.CreatedAt,
+			&a.UpdatedAt,
+			&a.ReadAt,
+		); err != nil {
+			return articles, err
+		}
+
+		articles = append(articles, a.toEntity())
+	}
+
+	return articles, nil
 }
