@@ -28,6 +28,16 @@ func MustNew(token string, logger *slog.Logger) *telegramClient {
 
 	updates, _ := bot.UpdatesViaLongPolling(ctx, nil)
 
+	bot.SetMyCommands(
+		ctx,
+		&telego.SetMyCommandsParams{
+			Commands: []telego.BotCommand{
+				{Command: "/start", Description: "Register and start"},
+				{Command: "/menu", Description: "Show main menu"},
+			},
+		},
+	)
+
 	return &telegramClient{bot: bot, updates: updates}
 }
 

@@ -2,6 +2,7 @@ package article
 
 import (
 	"errors"
+	"fmt"
 	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/repositories/article"
 	"strconv"
@@ -88,6 +89,48 @@ func (ah *ArticleHandler) NewGetArticleByIdHandler() th.Handler {
 					a.GetTitleLink(),
 				).
 					WithReplyMarkup(keyboards.NewArticleInlineKeyboard(a.Id, a.ReadAt != nil, true)).
+					WithParseMode("Markdown"),
+			)
+		return nil
+	}
+}
+
+func (ah *ArticleHandler) NewGetVibeArticleHandler() th.Handler {
+	return func(ctx *th.Context, update telego.Update) error {
+		a, err := ah.articleRepo.GetVibe(update.Message.From.ID)
+		if err != nil {
+			var text string
+			if errors.Is(err, article.ErrNotFound) {
+				text = "No articles found"
+			} else {
+				text = "Internal error"
+			}
+
+			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), text))
+			return nil
+		}
+
+		u, err := ah.userRepo.GetById(a.UserId)
+		if err != nil {
+			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), "Internal error"))
+			return nil
+		}
+
+		var text string
+
+		if u.Desc != nil {
+			text = fmt.Sprintf("Article of @%s\n\n%s", u.TgUsername, a.GetTitleLink())
+		} else {
+			text = fmt.Sprintf("Article of @%s\n(%s)\n\n%s", u.TgUsername, *u.Desc, a.GetTitleLink())
+		}
+
+		ctx.Bot().
+			SendMessage(
+				ctx,
+				tu.Message(
+					update.Message.Chat.ChatID(),
+					text,
+				).
 					WithParseMode("Markdown"),
 			)
 		return nil

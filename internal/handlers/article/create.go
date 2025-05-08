@@ -34,7 +34,7 @@ func (ah *ArticleHandler) NewCreateArticleHandler() th.Handler {
 			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), text))
 		}()
 
-		u, err := ah.userRepo.GetByTgUsername(from.Username)
+		u, err := ah.userRepo.GetByTgId(from.ID)
 
 		if err != nil {
 			if errors.Is(err, user.ErrNotFound) {

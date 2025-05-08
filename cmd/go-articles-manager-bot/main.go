@@ -6,6 +6,7 @@ import (
 	"go-articles-manager-bot/internal/database"
 	"go-articles-manager-bot/internal/handlers"
 	articleHandler "go-articles-manager-bot/internal/handlers/article"
+	"go-articles-manager-bot/internal/handlers/common"
 	userHandler "go-articles-manager-bot/internal/handlers/user"
 	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/logger"
@@ -70,7 +71,8 @@ func main() {
 		th.Or(
 			th.CallbackDataPrefix(keyboards.HideRead),
 			th.CallbackDataPrefix(keyboards.ShowRead),
-		))
+		),
+	)
 
 	createArticleScene := scenebuilder.NewScene(
 		[]scenebuilder.SceneStep{
@@ -86,6 +88,10 @@ func main() {
 		th.TextEqual(keyboards.AddArticle),
 	)
 
+	getVibeArticleHandler := handlers.NewHandler(articleHandler.NewGetVibeArticleHandler(),
+		th.TextEqual(keyboards.GetVibe),
+	)
+
 	// User section
 
 	userHandler := userHandler.New(userRepository)
@@ -95,14 +101,43 @@ func main() {
 		th.CommandEqual("start"),
 	)
 
+	getUserProfileHandler := handlers.NewHandler(
+		userHandler.NewGetUserProfileHandler(),
+		th.TextEqual(keyboards.Profile),
+	)
+
+	setUserPublicHandler := handlers.NewHandler(
+		userHandler.NewSetUserPublicHandler(),
+		th.Or(th.CallbackDataPrefix(keyboards.HideUser), th.CallbackDataPrefix(keyboards.SetPublic)),
+	)
+
+	setUserDescScene := scenebuilder.NewScene(
+		[]scenebuilder.SceneStep{
+			scenebuilder.NewSceneStep(
+				userHandler.NewEnterSetUserDescHandler(),
+				scenebuilder.NoScene,
+			),
+			scenebuilder.NewSceneStep(
+				userHandler.NewSetUserDescHandler(),
+				scenebuilder.StepAddUserDesc,
+			),
+		},
+		th.CallbackDataPrefix(keyboards.EditDesc),
+	)
+
+	// common
+
+	commonHandler := common.New()
+	getMenuHandler := handlers.NewHandler(commonHandler.GetMenu(), th.CommandEqual("menu"))
+
 	// Middlewares
 
-	authMiddleware := middlewares.NewAuthMiddleware()
 	sceneMiddleware := middlewares.NewSceneMiddleware()
 
 	client.
 		Run(
 			[]handlers.Handler{
+				getMenuHandler,
 				createUserHandler,
 				createGetRandomArticleHandler,
 				readArticleHanler,
@@ -111,13 +146,16 @@ func main() {
 				showArticlesChangePageHandler,
 				showArticlesChangeVisibilityHandler,
 				createGetArticleByIdHandler,
+				getUserProfileHandler,
+				setUserPublicHandler,
+				getVibeArticleHandler,
 			},
 			[]th.Handler{
 				sceneMiddleware,
-				authMiddleware,
 			},
 			[]scenebuilder.Scene{
 				createArticleScene,
+				setUserDescScene,
 			},
 		)
 }

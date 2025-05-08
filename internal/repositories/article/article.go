@@ -84,6 +84,29 @@ func (r *repository) GetRandomByTgId(tgId int64) (*entities.Article, error) {
 	return article.toEntity(), nil
 }
 
+func (r *repository) GetVibe(tgId int64) (*entities.Article, error) {
+	q := `SELECT a.* FROM article a WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId != ? ORDER BY RANDOM()) ORDER BY RANDOM() LIMIT 1;`
+	var article Article
+	row := r.db.QueryRow(q, tgId)
+
+	if err := row.Scan(
+		&article.Id,
+		&article.UserId,
+		&article.Title,
+		&article.Url,
+		&article.CreatedAt,
+		&article.UpdatedAt,
+		&article.ReadAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("Error while getting vibe article, %w", err)
+	}
+
+	return article.toEntity(), nil
+}
+
 func (r *repository) GetById(articleId uint32) (*entities.Article, error) {
 	q := `SELECT * FROM article WHERE article.id = ?;`
 	var article Article
@@ -108,8 +131,6 @@ func (r *repository) GetById(articleId uint32) (*entities.Article, error) {
 }
 
 func (r *repository) SetRead(articleId uint32, read bool) error {
-	fmt.Printf("%d %t", articleId, read)
-
 	t := sql.NullTime{Valid: read, Time: time.Now()}
 
 	q := `UPDATE article SET readAt = ? WHERE id = ?;`

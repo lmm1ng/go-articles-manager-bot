@@ -65,13 +65,49 @@ func (r *repository) GetByTgUsername(username string) (*entities.User, error) {
 	return user.ToEntity(), nil
 }
 
-func (r *repository) UpdatePublicByUsername(username string, public bool) error {
-	now := time.Now()
-	q := `UPDATE user SET public = $2, updatedAt = $3 WHERE tgUsername = $1;`
-	row, err := r.db.Exec(q, username, public, now)
+func (r *repository) GetByTgId(id int64) (*entities.User, error) {
+	q := `SELECT * FROM user WHERE tgId = ?`
+	var user User
+
+	if err := r.db.QueryRow(q, id).Scan(&user.Id, &user.TgId, &user.TgUsername, &user.Desc, &user.Public, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		return nil, ErrNotFound
+	}
+
+	return user.ToEntity(), nil
+}
+
+func (r *repository) GetById(id uint32) (*entities.User, error) {
+	q := `SELECT * FROM user WHERE id = ?`
+	var user User
+
+	if err := r.db.QueryRow(q, id).Scan(&user.Id, &user.TgId, &user.TgUsername, &user.Desc, &user.Public, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		return nil, ErrNotFound
+	}
+
+	return user.ToEntity(), nil
+}
+
+func (r *repository) UpdatePublicByTgId(id int64, public bool) error {
+	q := `UPDATE user SET public = ?, updatedAt = DATE() WHERE tgId = ?;`
+	row, err := r.db.Exec(q, public, id)
 
 	if err != nil {
-		return fmt.Errorf("Error updating user by tgUsername: %w", err)
+		return fmt.Errorf("Error updating user public by telegram id: %w", err)
+	}
+
+	if c, _ := row.RowsAffected(); c == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *repository) UpdateDescByTgId(id int64, desc string) error {
+	q := `UPDATE user SET desc = ?, updatedAt = DATE() WHERE tgId = ?;`
+	row, err := r.db.Exec(q, desc, id)
+
+	if err != nil {
+		return fmt.Errorf("Error updating user desc by telegram id: %w", err)
 	}
 
 	if c, _ := row.RowsAffected(); c == 0 {

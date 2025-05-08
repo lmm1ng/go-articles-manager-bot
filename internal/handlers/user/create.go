@@ -11,10 +11,6 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-type userRepository interface {
-	Create(user *entities.User) error
-}
-
 func (uh *UserHandler) NewCreateUserHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		u := &entities.User{

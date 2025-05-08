@@ -13,6 +13,7 @@ func NewMainMenuKeyboard() *telego.ReplyKeyboardMarkup {
 		),
 		tu.KeyboardRow(
 			tu.KeyboardButton(AddArticle),
+			tu.KeyboardButton(GetVibe),
 		),
 		tu.KeyboardRow(
 			tu.KeyboardButton(ShowArticles),

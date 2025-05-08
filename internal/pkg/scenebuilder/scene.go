@@ -29,16 +29,20 @@ func (s *Scene) Register(
 	outSteps := make([]handlers.Handler, len(s.steps))
 	for pos, step := range s.steps {
 		f := func(ctx *th.Context, update telego.Update) error {
-			// if update.Message == nil {
-			// 	return ctx.Next(update)
-			// }
+			var from int64
+
+			if update.Message == nil {
+				from = update.CallbackQuery.From.ID
+			} else {
+				from = update.Message.From.ID
+			}
 
 			scenesManager := ctx.Value(ScenesManagerKey).(*SceneManager)
 			if scenesManager == nil {
 				return errors.New("No users state")
 			}
 			scenesManager.Mutex.RLock()
-			curScene := (*scenesManager.Users)[update.Message.From.ID]
+			curScene := (*scenesManager.Users)[from]
 			scenesManager.Mutex.RUnlock()
 
 			if curScene != uint8(step.Step) {
@@ -53,9 +57,9 @@ func (s *Scene) Register(
 
 			scenesManager.Mutex.Lock()
 			if pos == len(s.steps)-1 {
-				(*scenesManager.Users)[update.Message.From.ID] = NoScene
+				(*scenesManager.Users)[from] = NoScene
 			} else {
-				(*scenesManager.Users)[update.Message.From.ID] = s.steps[pos+1].Step
+				(*scenesManager.Users)[from] = s.steps[pos+1].Step
 			}
 
 			scenesManager.Mutex.Unlock()

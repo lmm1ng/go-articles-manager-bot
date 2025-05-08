@@ -9,8 +9,10 @@ type articleRepository interface {
 	Delete(articleId uint32) error
 	GetArticlesByTgId(tgId int64, read bool, offset uint16, limit uint16) ([]*entities.Article, error)
 	GetById(articleId uint32) (*entities.Article, error)
+	GetVibe(tgId int64) (*entities.Article, error)
 }
 
 type userRepository interface {
-	GetByTgUsername(string) (*entities.User, error)
+	GetByTgId(id int64) (*entities.User, error)
+	GetById(id uint32) (*entities.User, error)
 }
