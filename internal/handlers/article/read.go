@@ -15,21 +15,21 @@ func (ah *ArticleHandler) NewReadArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		var text string
 
+		chatId := telego.ChatID{
+			ID:       update.CallbackQuery.Message.GetChat().ID,
+			Username: update.CallbackQuery.Message.GetChat().Username,
+		}
+
 		defer func() {
-			ctx.Bot().
-				SendMessage(
-					ctx,
-					tu.Message(
-						// lib is AWESOME (no)
-						telego.ChatID{
-							ID:       update.CallbackQuery.Message.GetChat().ID,
-							Username: update.CallbackQuery.Message.GetChat().Username,
-						},
-						text,
-					))
+			ctx.Bot().SendMessage(ctx, tu.Message(chatId, text))
 		}()
 
-		args := ah.getCallbackArgs(update.CallbackQuery.Data, keyboards.ReadArticle, keyboards.UnreadArticle)
+		args := ah.getCallbackArgs(
+			update.CallbackQuery.Data,
+			keyboards.ReadArticle,
+			keyboards.UnreadArticle,
+		)
+
 		if len(args) != 2 {
 			text = "Invalid params"
 			return nil
@@ -53,7 +53,19 @@ func (ah *ArticleHandler) NewReadArticleHandler() th.Handler {
 			return nil
 		}
 
+		ctx.Bot().DeleteMessage(
+			ctx,
+			&telego.DeleteMessageParams{
+				ChatID:    chatId,
+				MessageID: update.CallbackQuery.Message.GetMessageID(),
+			},
+		)
+
 		text = "Article marked as read"
+
+		if read {
+			text = "Article marked as unread"
+		}
 
 		return nil
 	}

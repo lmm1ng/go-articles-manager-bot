@@ -109,10 +109,12 @@ func (r *repository) GetById(articleId uint32) (*entities.Article, error) {
 
 func (r *repository) SetRead(articleId uint32, read bool) error {
 	fmt.Printf("%d %t", articleId, read)
-	rVal := sql.NullTime{Valid: read, Time: time.Now()}
-	q := `UPDATE article SET readAt = $2 WHERE id = $1;`
 
-	row, err := r.db.Exec(q, articleId, rVal)
+	t := sql.NullTime{Valid: read, Time: time.Now()}
+
+	q := `UPDATE article SET readAt = ? WHERE id = ?;`
+
+	row, err := r.db.Exec(q, t, articleId)
 
 	if err != nil {
 		return fmt.Errorf("Error while reading article, %w", err)

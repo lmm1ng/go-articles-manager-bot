@@ -14,6 +14,12 @@ import (
 
 func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
+
+		chatId := telego.ChatID{
+			ID:       update.CallbackQuery.Message.GetChat().ID,
+			Username: update.CallbackQuery.Message.GetChat().Username,
+		}
+
 		var text string
 
 		defer func() {
@@ -21,11 +27,7 @@ func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 				SendMessage(
 					ctx,
 					tu.Message(
-						// lib is AWESOME (no)
-						telego.ChatID{
-							ID:       update.CallbackQuery.Message.GetChat().ID,
-							Username: update.CallbackQuery.Message.GetChat().Username,
-						},
+						chatId,
 						text,
 					))
 
@@ -52,6 +54,16 @@ func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 				text = "Internal error"
 			}
 		}
+
+		ctx.Bot().DeleteMessage(
+			ctx,
+			&telego.DeleteMessageParams{
+				ChatID:    chatId,
+				MessageID: update.CallbackQuery.Message.GetMessageID(),
+			},
+		)
+
+		text = "Article deleted"
 
 		return nil
 	}
