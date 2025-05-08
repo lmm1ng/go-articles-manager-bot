@@ -29,6 +29,10 @@ func (s *Scene) Register(
 	outSteps := make([]handlers.Handler, len(s.steps))
 	for pos, step := range s.steps {
 		f := func(ctx *th.Context, update telego.Update) error {
+			// if update.Message == nil {
+			// 	return ctx.Next(update)
+			// }
+
 			scenesManager := ctx.Value(ScenesManagerKey).(*SceneManager)
 			if scenesManager == nil {
 				return errors.New("No users state")

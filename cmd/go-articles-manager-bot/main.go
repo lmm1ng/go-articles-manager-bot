@@ -39,9 +39,14 @@ func main() {
 		th.TextEqual(keyboards.RandomArticle),
 	)
 
+	createGetArticleByIdHandler := handlers.NewHandler(
+		articleHandler.NewGetArticleByIdHandler(),
+		th.CallbackDataPrefix(keyboards.SelectArticle),
+	)
+
 	readArticleHanler := handlers.NewHandler(
 		articleHandler.NewReadArticleHandler(),
-		th.CallbackDataPrefix(keyboards.ReadArticle),
+		th.Or(th.CallbackDataPrefix(keyboards.ReadArticle), th.CallbackDataPrefix(keyboards.UnreadArticle)),
 	)
 
 	deleteArticleHanler := handlers.NewHandler(
@@ -105,6 +110,7 @@ func main() {
 				showArticlesHandler,
 				showArticlesChangePageHandler,
 				showArticlesChangeVisibilityHandler,
+				createGetArticleByIdHandler,
 			},
 			[]th.Handler{
 				sceneMiddleware,

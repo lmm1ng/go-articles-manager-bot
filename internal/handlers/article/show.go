@@ -3,7 +3,6 @@ package article
 import (
 	"go-articles-manager-bot/internal/keyboards"
 	"strconv"
-	"strings"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -12,7 +11,7 @@ import (
 
 func (ah *ArticleHandler) NewShowArticlesHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
-		articles, err := ah.generateArticlesList(update.Message.From.ID, 1, true)
+		articles, err := ah.getArticlesList(update.Message.From.ID, 1, true)
 		if err != nil {
 			ctx.Bot().
 				SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), err.Error()))
@@ -23,11 +22,11 @@ func (ah *ArticleHandler) NewShowArticlesHandler() th.Handler {
 				ctx,
 				tu.Message(
 					update.Message.Chat.ChatID(),
-					strings.Join(articles, "\n"),
+					ah.generateAtriclesMessage(articles),
 				).
 					WithParseMode("Markdown").
 					WithLinkPreviewOptions(&telego.LinkPreviewOptions{IsDisabled: true}).
-					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(1, true, uint16(len(articles)), ah.articlesPerPage)),
+					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(1, true, articles)),
 			)
 
 		return nil
@@ -54,7 +53,7 @@ func (ah *ArticleHandler) NewShowArticlesChangePageHandler() th.Handler {
 			text = "Invalid params"
 		}
 
-		articles, err := ah.generateArticlesList(
+		articles, err := ah.getArticlesList(
 			update.CallbackQuery.Message.GetChat().ID,
 			uint16(page),
 			read,
@@ -84,11 +83,11 @@ func (ah *ArticleHandler) NewShowArticlesChangePageHandler() th.Handler {
 				ctx,
 				tu.Message(
 					chatId,
-					strings.Join(articles, "\n"),
+					ah.generateAtriclesMessage(articles),
 				).
 					WithParseMode("Markdown").
 					WithLinkPreviewOptions(&telego.LinkPreviewOptions{IsDisabled: true}).
-					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(uint16(page), read, uint16(len(articles)), ah.articlesPerPage)),
+					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(uint16(page), read, articles)),
 			)
 		return nil
 	}
@@ -115,7 +114,7 @@ func (ah *ArticleHandler) NewShowArticlesChangeVisibilityHandler() th.Handler {
 			return nil
 		}
 
-		articles, err := ah.generateArticlesList(
+		articles, err := ah.getArticlesList(
 			update.CallbackQuery.Message.GetChat().ID,
 			1,
 			read,
@@ -139,11 +138,11 @@ func (ah *ArticleHandler) NewShowArticlesChangeVisibilityHandler() th.Handler {
 				ctx,
 				tu.Message(
 					chatId,
-					strings.Join(articles, "\n"),
+					ah.generateAtriclesMessage(articles),
 				).
 					WithParseMode("Markdown").
 					WithLinkPreviewOptions(&telego.LinkPreviewOptions{IsDisabled: true}).
-					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(1, read, uint16(len(articles)), ah.articlesPerPage)),
+					WithReplyMarkup(keyboards.NewArticlesListInlineKeyboard(1, read, articles)),
 			)
 		return nil
 	}

@@ -5,7 +5,6 @@ import (
 	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/repositories/article"
 	"strconv"
-	"strings"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -30,19 +29,22 @@ func (ah *ArticleHandler) NewReadArticleHandler() th.Handler {
 					))
 		}()
 
-		articleId, err := strconv.Atoi(strings.Replace(
-			update.CallbackQuery.Data,
-			keyboards.ReadArticle+" ",
-			"",
-			1,
-		))
-
-		if err != nil {
-			text = "Article id not valid"
+		args := ah.getCallbackArgs(update.CallbackQuery.Data, keyboards.ReadArticle, keyboards.UnreadArticle)
+		if len(args) != 2 {
+			text = "Invalid params"
 			return nil
 		}
+		articleId, err := strconv.Atoi(args[0])
+		if err != nil {
+			text = "Invalid params"
+		}
 
-		if err = ah.articleRepo.Read(uint32(articleId)); err != nil {
+		read, err := strconv.ParseBool(args[1])
+		if err != nil {
+			text = "Invalid params"
+		}
+
+		if err := ah.articleRepo.SetRead(uint32(articleId), !read); err != nil {
 			if errors.Is(err, article.ErrNotFound) {
 				text = "Article not found"
 			} else {

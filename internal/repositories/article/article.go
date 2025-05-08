@@ -84,10 +84,10 @@ func (r *repository) GetRandomByTgId(tgId int64) (*entities.Article, error) {
 	return article.toEntity(), nil
 }
 
-func (r *repository) GetById(tgId int64, articleId uint32) (*entities.Article, error) {
-	q := `SELECT a.* FROM article a WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = $2) AND a.id = $1 LIMIT 1;`
+func (r *repository) GetById(articleId uint32) (*entities.Article, error) {
+	q := `SELECT * FROM article WHERE article.id = ?;`
 	var article Article
-	row := r.db.QueryRow(q, tgId)
+	row := r.db.QueryRow(q, articleId)
 
 	if err := row.Scan(
 		&article.Id,
@@ -107,10 +107,12 @@ func (r *repository) GetById(tgId int64, articleId uint32) (*entities.Article, e
 	return article.toEntity(), nil
 }
 
-func (r *repository) Read(articleId uint32) error {
-	q := `UPDATE article SET readAt = DATE() WHERE id = ?`
+func (r *repository) SetRead(articleId uint32, read bool) error {
+	fmt.Printf("%d %t", articleId, read)
+	rVal := sql.NullTime{Valid: read, Time: time.Now()}
+	q := `UPDATE article SET readAt = $2 WHERE id = $1;`
 
-	row, err := r.db.Exec(q, articleId)
+	row, err := r.db.Exec(q, articleId, rVal)
 
 	if err != nil {
 		return fmt.Errorf("Error while reading article, %w", err)
