@@ -15,6 +15,7 @@ func MustNew(path string, logger *slog.Logger) *sql.DB {
 	}
 
 	if err := db.Ping(); err != nil {
+		logger.Error(err.Error())
 		panic("Cannot establish connection to db")
 	}
 
