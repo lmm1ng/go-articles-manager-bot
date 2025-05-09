@@ -4,4 +4,4 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux make build
-CMD ["/bin/bot"]
+CMD ["make", "run-prod"]
