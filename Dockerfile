@@ -3,5 +3,5 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
-RUN CGO_ENABLED=0 GOOS=linux make build
+RUN GOOS=linux make build
 CMD ["make", "run-prod"]
