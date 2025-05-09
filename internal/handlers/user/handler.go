@@ -3,12 +3,14 @@ package user
 import "strings"
 
 type UserHandler struct {
-	userRepo userRepository
+	userRepo    userRepository
+	articleRepo articleRepository
 }
 
-func New(userRepo userRepository) *UserHandler {
+func New(userRepo userRepository, articleRepo articleRepository) *UserHandler {
 	return &UserHandler{
-		userRepo: userRepo,
+		userRepo:    userRepo,
+		articleRepo: articleRepo,
 	}
 }
 

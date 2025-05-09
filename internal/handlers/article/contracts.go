@@ -1,6 +1,8 @@
 package article
 
-import "go-articles-manager-bot/internal/entities"
+import (
+	"go-articles-manager-bot/internal/entities"
+)
 
 type articleRepository interface {
 	Create(*entities.Article) error

@@ -3,7 +3,7 @@ package user
 import (
 	"errors"
 	"go-articles-manager-bot/internal/keyboards"
-	"go-articles-manager-bot/internal/repositories/article"
+	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	"strconv"
 
 	"github.com/mymmrac/telego"
@@ -41,7 +41,7 @@ func (uh *UserHandler) NewSetUserPublicHandler() th.Handler {
 		}
 
 		if err := uh.userRepo.UpdatePublicByTgId(update.CallbackQuery.From.ID, !public); err != nil {
-			if errors.Is(err, article.ErrNotFound) {
+			if errors.Is(err, articleRepo.ErrNotFound) {
 				text = "User not found"
 			} else {
 				text = "Internal error"

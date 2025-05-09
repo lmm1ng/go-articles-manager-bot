@@ -3,7 +3,7 @@ package article
 import (
 	"errors"
 	"go-articles-manager-bot/internal/keyboards"
-	"go-articles-manager-bot/internal/repositories/article"
+	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	"strconv"
 
 	"github.com/mymmrac/telego"
@@ -45,7 +45,7 @@ func (ah *ArticleHandler) NewReadArticleHandler() th.Handler {
 		}
 
 		if err := ah.articleRepo.SetRead(uint32(articleId), !read); err != nil {
-			if errors.Is(err, article.ErrNotFound) {
+			if errors.Is(err, articleRepo.ErrNotFound) {
 				text = "Article not found"
 			} else {
 				text = "Internal error"

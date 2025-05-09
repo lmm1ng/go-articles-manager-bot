@@ -67,7 +67,8 @@ func main() {
 		),
 	)
 
-	showArticlesChangeVisibilityHandler := handlers.NewHandler(articleHandler.NewShowArticlesChangeVisibilityHandler(),
+	showArticlesChangeVisibilityHandler := handlers.NewHandler(
+		articleHandler.NewShowArticlesChangeVisibilityHandler(),
 		th.Or(
 			th.CallbackDataPrefix(keyboards.HideRead),
 			th.CallbackDataPrefix(keyboards.ShowRead),
@@ -94,7 +95,7 @@ func main() {
 
 	// User section
 
-	userHandler := userHandler.New(userRepository)
+	userHandler := userHandler.New(userRepository, articleRepository)
 
 	createUserHandler := handlers.NewHandler(
 		userHandler.NewCreateUserHandler(),
@@ -104,6 +105,11 @@ func main() {
 	getUserProfileHandler := handlers.NewHandler(
 		userHandler.NewGetUserProfileHandler(),
 		th.TextEqual(keyboards.Profile),
+	)
+
+	getUserStatsHandler := handlers.NewHandler(
+		userHandler.NewGetUserStatHandler(),
+		th.TextEqual(keyboards.Statistics),
 	)
 
 	setUserPublicHandler := handlers.NewHandler(
@@ -149,6 +155,7 @@ func main() {
 				getUserProfileHandler,
 				setUserPublicHandler,
 				getVibeArticleHandler,
+				getUserStatsHandler,
 			},
 			[]th.Handler{
 				sceneMiddleware,

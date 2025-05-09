@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-articles-manager-bot/internal/keyboards"
 	"go-articles-manager-bot/internal/repositories/article"
+	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	"strconv"
 
 	"github.com/mymmrac/telego"
@@ -14,24 +15,16 @@ import (
 
 func (ah *ArticleHandler) NewGetRandomArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
-		var text string
-
 		a, err := ah.articleRepo.GetRandomByTgId(update.Message.From.ID)
 		if err != nil {
-			if errors.Is(err, article.ErrNotFound) {
-				text = "No articles found"
+			var errText string
+			if errors.Is(err, articleRepo.ErrNotFound) {
+				errText = "No articles found"
 			} else {
-				text = "Internal error"
+				errText = "Internal error"
 			}
 
-			ctx.Bot().
-				SendMessage(
-					ctx,
-					tu.Message(
-						update.Message.Chat.ChatID(),
-						text,
-					),
-				)
+			ctx.Bot().SendMessage(ctx, tu.Message(update.Message.Chat.ChatID(), errText))
 			return nil
 		}
 
@@ -100,7 +93,7 @@ func (ah *ArticleHandler) NewGetVibeArticleHandler() th.Handler {
 		a, err := ah.articleRepo.GetVibe(update.Message.From.ID)
 		if err != nil {
 			var text string
-			if errors.Is(err, article.ErrNotFound) {
+			if errors.Is(err, articleRepo.ErrNotFound) {
 				text = "No articles found"
 			} else {
 				text = "Internal error"
@@ -116,12 +109,19 @@ func (ah *ArticleHandler) NewGetVibeArticleHandler() th.Handler {
 			return nil
 		}
 
+		username := "hidden one"
+
+		if u.TgUsername != nil {
+			username = *u.TgUsername
+		}
+
 		var text string
 
 		if u.Desc != nil {
-			text = fmt.Sprintf("Article of @%s\n\n%s", u.TgUsername, a.GetTitleLink())
+			text = fmt.Sprintf("Article of @%s\n(%s)\n\n%s", username, *u.Desc, a.GetTitleLink())
+
 		} else {
-			text = fmt.Sprintf("Article of @%s\n(%s)\n\n%s", u.TgUsername, *u.Desc, a.GetTitleLink())
+			text = fmt.Sprintf("Article of @%s\n\n%s", username, a.GetTitleLink())
 		}
 
 		ctx.Bot().

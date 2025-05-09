@@ -3,9 +3,8 @@ package article
 import (
 	"errors"
 	"go-articles-manager-bot/internal/keyboards"
-	"go-articles-manager-bot/internal/repositories/article"
+	articleRepo "go-articles-manager-bot/internal/repositories/article"
 	"strconv"
-	"strings"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -14,45 +13,34 @@ import (
 
 func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
-
 		chatId := telego.ChatID{
 			ID:       update.CallbackQuery.Message.GetChat().ID,
 			Username: update.CallbackQuery.Message.GetChat().Username,
 		}
 
-		var text string
+		args := ah.getCallbackArgs(update.CallbackQuery.Data, keyboards.DeleteArticle)
 
-		defer func() {
-			ctx.Bot().
-				SendMessage(
-					ctx,
-					tu.Message(
-						chatId,
-						text,
-					))
+		if len(args) != 1 {
+			ctx.Bot().SendMessage(ctx, tu.Message(chatId, "Invalid params"))
+			return nil
+		}
 
-		}()
-
-		articleId, err := strconv.Atoi(
-			strings.Replace(
-				update.CallbackQuery.Data,
-				keyboards.DeleteArticle+" ",
-				"",
-				1,
-			),
-		)
-
+		articleId, err := strconv.Atoi(args[0])
 		if err != nil {
-			text = "Article id not valid"
+			ctx.Bot().SendMessage(ctx, tu.Message(chatId, "Invalid params"))
 			return nil
 		}
 
 		if err = ah.articleRepo.Delete(uint32(articleId)); err != nil {
-			if errors.Is(err, article.ErrNotFound) {
-				text = "Article not found"
+			var errText string
+			if errors.Is(err, articleRepo.ErrNotFound) {
+				errText = "Article not found"
 			} else {
-				text = "Internal error"
+				errText = "Internal error"
 			}
+
+			ctx.Bot().SendMessage(ctx, tu.Message(chatId, errText))
+			return nil
 		}
 
 		ctx.Bot().DeleteMessage(
@@ -63,7 +51,7 @@ func (ah *ArticleHandler) NewDeleteArticleHandler() th.Handler {
 			},
 		)
 
-		text = "Article deleted"
+		ctx.Bot().SendMessage(ctx, tu.Message(chatId, "Article deleted"))
 
 		return nil
 	}

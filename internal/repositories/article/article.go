@@ -62,7 +62,12 @@ func (r *repository) Create(article *entities.Article) error {
 }
 
 func (r *repository) GetRandomByTgId(tgId int64) (*entities.Article, error) {
-	q := `SELECT a.* FROM article a WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = ?) AND a.readAt IS NULL ORDER BY RANDOM() LIMIT 1;`
+	q := `
+	SELECT * FROM article
+	WHERE userId in (SELECT id FROM user WHERE tgId = ?) AND
+	readAt IS NULL
+	ORDER BY RANDOM()
+	LIMIT 1`
 	var article Article
 	row := r.db.QueryRow(q, tgId)
 
@@ -85,7 +90,12 @@ func (r *repository) GetRandomByTgId(tgId int64) (*entities.Article, error) {
 }
 
 func (r *repository) GetVibe(tgId int64) (*entities.Article, error) {
-	q := `SELECT a.* FROM article a WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId != ? ORDER BY RANDOM()) ORDER BY RANDOM() LIMIT 1;`
+	q := `
+	SELECT * FROM article
+	WHERE userId in (SELECT id FROM user WHERE tgId != ? AND public = TRUE ORDER BY RANDOM())
+	ORDER BY RANDOM()
+	LIMIT 1`
+
 	var article Article
 	row := r.db.QueryRow(q, tgId)
 
@@ -133,7 +143,7 @@ func (r *repository) GetById(articleId uint32) (*entities.Article, error) {
 func (r *repository) SetRead(articleId uint32, read bool) error {
 	t := sql.NullTime{Valid: read, Time: time.Now()}
 
-	q := `UPDATE article SET readAt = ? WHERE id = ?;`
+	q := `UPDATE article SET readAt = ?, updatedAt = DATETIME() WHERE id = ?;`
 
 	row, err := r.db.Exec(q, t, articleId)
 
@@ -167,11 +177,11 @@ func (r *repository) GetArticlesByTgId(tgId int64, read bool, offset uint16, lim
 
 	q := `
 	SELECT a.* FROM article a
-	WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = $1) AND
-	a.readAt < $2 OR a.readAt IS NULL
+	WHERE a.userId in (SELECT u.id FROM user u WHERE u.tgId = ?) AND
+	(a.readAt < ? OR a.readAt IS NULL)
 	ORDER BY a.id ASC
-	LIMIT $3
-	OFFSET $4;`
+	LIMIT ?
+	OFFSET ?`
 
 	rows, err := r.db.Query(q, tgId, readAt, limit, offset)
 
@@ -201,4 +211,27 @@ func (r *repository) GetArticlesByTgId(tgId int64, read bool, offset uint16, lim
 	}
 
 	return articles, nil
+}
+
+func (r *repository) GetArticlesCountByPeriod(tgId int64, read bool, start time.Time, end time.Time) (uint16, error) {
+	readAt := sql.NullTime{Valid: read, Time: time.Now()}
+
+	var count uint16
+
+	q := `
+	SELECT COUNT(*) FROM article
+	WHERE userId in (SELECT id FROM user WHERE tgId = ?) AND
+	(readAt < ? OR readAt IS NULL) AND
+	updatedAt < ? AND updatedAt > ?;`
+
+	row := r.db.QueryRow(q, tgId, readAt, end, start)
+
+	if err := row.Scan(&count); err != nil {
+		if err == sql.ErrNoRows {
+			return count, ErrNotFound
+		}
+		return count, fmt.Errorf("Error while getting articles count, %w", err)
+	}
+
+	return count, nil
 }

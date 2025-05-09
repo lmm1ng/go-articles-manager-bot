@@ -2,7 +2,7 @@ package user
 
 import (
 	"errors"
-	"go-articles-manager-bot/internal/repositories/user"
+	userRepo "go-articles-manager-bot/internal/repositories/user"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -27,7 +27,7 @@ func (uh *UserHandler) NewSetUserDescHandler() th.Handler {
 		err := uh.userRepo.UpdateDescByTgId(update.Message.From.ID, update.Message.Text)
 
 		if err != nil {
-			if errors.Is(err, user.ErrNotFound) {
+			if errors.Is(err, userRepo.ErrNotFound) {
 				text = "Unknown user"
 			}
 			text = "Internal error"

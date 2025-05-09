@@ -3,7 +3,7 @@ package article
 import (
 	"errors"
 	"go-articles-manager-bot/internal/entities"
-	"go-articles-manager-bot/internal/repositories/user"
+	userRepo "go-articles-manager-bot/internal/repositories/user"
 	"net/http"
 	"slices"
 	"time"
@@ -37,7 +37,7 @@ func (ah *ArticleHandler) NewCreateArticleHandler() th.Handler {
 		u, err := ah.userRepo.GetByTgId(from.ID)
 
 		if err != nil {
-			if errors.Is(err, user.ErrNotFound) {
+			if errors.Is(err, userRepo.ErrNotFound) {
 				text = "User not found"
 			}
 
