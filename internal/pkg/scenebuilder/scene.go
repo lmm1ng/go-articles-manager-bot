@@ -41,9 +41,9 @@ func (s *Scene) Register(
 			if scenesManager == nil {
 				return errors.New("No users state")
 			}
-			scenesManager.Mutex.RLock()
-			curScene := (*scenesManager.Users)[from]
-			scenesManager.Mutex.RUnlock()
+			scenesManager.mutex.Lock()
+			curScene := scenesManager.users[from]
+			scenesManager.mutex.Unlock()
 
 			if curScene != uint8(step.Step) {
 				return ctx.Next(update)
@@ -55,14 +55,14 @@ func (s *Scene) Register(
 				return nil
 			}
 
-			scenesManager.Mutex.Lock()
+			scenesManager.mutex.Lock()
 			if pos == len(s.steps)-1 {
-				(*scenesManager.Users)[from] = NoScene
+				scenesManager.users[from] = NoScene
 			} else {
-				(*scenesManager.Users)[from] = s.steps[pos+1].Step
+				scenesManager.users[from] = s.steps[pos+1].Step
 			}
 
-			scenesManager.Mutex.Unlock()
+			scenesManager.mutex.Unlock()
 
 			return nil
 		}
